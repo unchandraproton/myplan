@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudTrack - Liquid Glass PWA</title>
+  
+  <!-- FontAwesome for Premium Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- PWA Physical Manifest File Link -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Browser-Native Import Map to Resolve Bare Imports to Official CDNs -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+      }
+    }
+  </script>
+
+  <style>
+    /* iOS 17 & LIQUID GLASS SYSTEM VARIABLES */
+    :root {
+      --primary: #4f46e5;
+      --primary-rgb: 79, 70, 229;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text-dark: #1c1c1e;
+      --text-light: #8e8e93;
+      --glass-bg: rgba(255, 255, 255, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --card-shadow: 0 12px 40px rgba(31, 38, 135, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'SF Pro Display', 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #f4f5f7;
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* LIQUID GLOWING BACKGROUND ORBS */
+    .glowing-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .glow-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.55;
+      mix-blend-mode: multiply;
+      animation: morphing 20s infinite alternate ease-in-out;
+    }
+
+    .orb-1 {
+      background: radial-gradient(circle, #a5b4fc 0%, rgba(255, 255, 255, 0) 70%);
+      width: 600px;
+      height: 600px;
+      top: -10%;
+      left: -10%;
+    }
+
+    .orb-2 {
+      background: radial-gradient(circle, #fbcfe8 0%, rgba(255, 255, 255, 0) 70%);
+      width: 500px;
+      height: 500px;
+      bottom: -10%;
+      right: -10%;
+      animation-delay: -5s;
+    }
+
+    .orb-3 {
+      background: radial-gradient(circle, #e0f2fe 0%, rgba(255, 255, 255, 0) 70%);
+      width: 400px;
+      height: 400px;
+      top: 35%;
+      right: -5%;
+      animation-delay: -10s;
+    }
+
+    @keyframes morphing {
+      0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate(50px, -40px) scale(1.15) rotate(90deg); }
+      100% { transform: translate(-30px, 50px) scale(0.9) rotate(180deg); }
+    }
+
+    /* GLASS CARD BASE */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(25px) saturate(210%);
+      -webkit-backdrop-filter: blur(25px) saturate(210%);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 20px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      box-shadow: 0 20px 48px rgba(31, 38, 135, 0.08);
+    }
+
+    /* FULL SCREEN LOADER SCREEN */
+    #global-loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+
+    .liquid-spinner {
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+
+    .liquid-spinner::before, .liquid-spinner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      opacity: 0.6;
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    .liquid-spinner::after {
+      animation-delay: -1s;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.3); opacity: 0.9; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    .loader-text {
+      margin-top: 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      letter-spacing: -0.2px;
+    }
+
+    /* RED ALERT ALARM POPUP (GLASS DANGER UI) */
+    .alarm-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(239, 68, 68, 0.4);
+      backdrop-filter: blur(25px) saturate(200%);
+      -webkit-backdrop-filter: blur(25px) saturate(200%);
+      z-index: 12000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: flashRed 1s infinite alternate;
+    }
+
+    @keyframes flashRed {
+      from { background: rgba(239, 68, 68, 0.35); }
+      to { background: rgba(220, 38, 38, 0.6); }
+    }
+
+    .alarm-content {
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 28px;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      color: white;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: pulseAlert 0.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseAlert {
+      from { transform: scale(1); }
+      to { transform: scale(1.03); }
+    }
+
+    .alarm-icon {
+      font-size: 4rem;
+      color: #fee2e2;
+      margin-bottom: 20px;
+      animation: rotateHazard 1.5s infinite linear;
+    }
+
+    @keyframes rotateHazard {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .alarm-title {
+      font-family: 'SF Pro Display', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .alarm-desc {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+
+    .close-alarm-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .close-alarm-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+    }
+
+    /* MAIN APP STRUCTURE */
+    #app-container {
+      display: none;
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 20px 20px 100px 20px;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    /* DYNAMIC HEADER NAV */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .date-pill {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .date-pill-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dark);
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    .date-pill-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-align: center;
+      min-width: 110px;
+    }
+
+    .sync-profile {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* METRIC HIGHLIGHT / SCORE */
+    .dashboard-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .hero-stat-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 110px;
+    }
+
+    .hero-stat-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+    }
+
+    .hero-stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    /* SECTION TITLE */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* CARD COMPONENT - CHECKLISTS & TASKS */
+    .dashboard-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+    }
+
+    .dashboard-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 75%;
+    }
+
+    .item-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    /* CHECKBOX DESIGNS */
+    .custom-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      outline: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .custom-check:checked {
+      background-color: var(--success);
+      border-color: var(--success);
+    }
+
+    .custom-check:checked::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      color: white;
+      font-size: 0.75rem;
+    }
+
+    /* SWITCH DESIGN FOR TEST TOGGLE */
+    .ios-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .ios-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(120, 120, 128, 0.16);
+      transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border-radius: 34px;
+    }
+
+    .ios-slider::before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    input:checked + .ios-slider {
+      background-color: #34c759;
+    }
+
+    input:checked + .ios-slider::before {
+      transform: translateX(22px);
+    }
+
+    /* PLANNER SLOTS */
+    .planner-card-slot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+      gap: 12px;
+    }
+
+    .planner-card-time {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 90px;
+    }
+
+    .planner-card-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .planner-card-input {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 8px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .planner-card-input:focus {
+      border-color: rgba(79, 70, 229, 0.3);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .planner-save-btn {
+      background: rgba(79, 70, 229, 0.1);
+      border: none;
+      color: var(--primary);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .planner-save-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* DASHBOARD TABLE DESIGN */
+    .dashboard-table-container {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .ios-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .ios-table th {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .ios-table td {
+      font-size: 0.85rem;
+      padding: 12px 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .ios-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .plan-text-empty {
+      color: var(--text-light);
+      font-style: italic;
+    }
+
+    /* DAILY ROUTINE VIEW STYLES */
+    .routine-container {
+      margin-top: 15px;
+      text-align: center;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.3);
+      padding: 10px;
+    }
+
+    .routine-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+      cursor: zoom-in;
+      transition: transform 0.25s ease;
+    }
+
+    .routine-img:hover {
+      transform: scale(1.01);
+    }
+
+    .no-routine-msg {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      padding: 30px 10px;
+      font-style: italic;
+    }
+
+    /* GLASS ZOOM LIGHTBOX OVERLAY */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 28, 30, 0.85);
+      backdrop-filter: blur(25px) saturate(180%);
+      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      z-index: 11000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .lightbox.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .lightbox img {
+      max-width: 95%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .lightbox.active img {
+      transform: scale(1);
+    }
+
+    .close-lightbox {
+      position: absolute;
+      top: 25px;
+      right: 25px;
+      color: white;
+      font-size: 1.8rem;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 12000;
+    }
+
+    .close-lightbox:hover {
+      background: rgba(255, 255, 255, 0.3);
+      color: var(--danger);
+      transform: rotate(90deg);
+    }
+
+    /* BULK SCHEDULE STYLES */
+    .bulk-list-container {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .bulk-item-card {
+      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 14px;
+      border-radius: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .bulk-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bulk-date-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      background: rgba(79, 70, 229, 0.08);
+      padding: 2px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+
+    /* SETTINGS STYLINGS */
+    .setting-group {
+      margin-bottom: 20px;
+    }
+
+    .setting-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* PWA INSTALL BANNER */
+    .pwa-install-pill {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.2);
+    }
+
+    .pwa-install-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .pwa-install-desc {
+      font-size: 0.7rem;
+      opacity: 0.9;
+    }
+
+    .pwa-install-btn {
+      background: white;
+      border: none;
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    /* TOAST ALERTS */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(28, 28, 30, 0.9);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* iOS 17 BOTTOM NAV BAR */
+    .nav-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 30px);
+      max-width: 500px;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(30px) saturate(210%);
+      -webkit-backdrop-filter: blur(30px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      height: 64px;
+      border-radius: 32px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+      z-index: 999;
+      padding: 0 10px;
+    }
+
+    .nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-light);
+      position: relative;
+      width: 58px;
+      height: 48px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn i {
+      font-size: 1.15rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn span {
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-top: 4px;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn.active {
+      color: var(--primary);
+    }
+
+    .nav-btn.active i {
+      transform: translateY(-4px);
+    }
+
+    .nav-btn.active span {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    /* VIEW TAB VISIBILITIES */
+    .view-tab {
+      display: none;
+    }
+
+    .view-tab.active-tab {
+      display: block;
+      animation: tabFadeIn 0.4s ease;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Orbs -->
+  <div class="glowing-bg">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <!-- Global Glass Loader -->
+  <div id="global-loader">
+    <div class="liquid-spinner"></div>
+    <div class="loader-text">Securing Cloud Connection...</div>
+  </div>
+
+  <!-- RED ALARM OVERLAY POPUP -->
+  <div id="alarm-overlay" class="alarm-modal">
+    <div class="alarm-content">
+      <div class="close-alarm-btn" onclick="closeAlarm()">&times;</div>
+      <i class="fa-solid fa-triangle-exclamation alarm-icon"></i>
+      <div class="alarm-title">Alert for Test</div>
+      <p class="alarm-desc">A scheduled test is currently active for today. Be prepared!</p>
+      <button class="auth-btn" style="background: white; color: var(--danger); margin-top: 10px;" onclick="closeAlarm()">
+        <i class="fa-solid fa-bell-slash"></i> Dismiss Alert
+      </button>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL POPUP -->
+  <div id="image-lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="close-lightbox" onclick="closeLightbox()">&times;</span>
+    <img id="lightbox-img" src="" alt="Daily Routine Zoom" onclick="event.stopPropagation()">
+  </div>
+
+  <!-- MAIN APPLICATION VIEW -->
+  <div id="app-container">
+    
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="pwa-install-pill">
+      <div>
+        <div class="pwa-install-title">Install StudTrack</div>
+        <div class="pwa-install-desc">Add to Home Screen for standalone experience</div>
+      </div>
+      <button class="pwa-install-btn" onclick="installApp()">Install</button>
+    </div>
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="date-pill">
+        <button class="date-pill-btn" onclick="adjustDate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+        <div id="display-date-str" class="date-pill-title">Today</div>
+        <button class="date-pill-btn" onclick="adjustDate(1)"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="sync-profile">
+        <i class="fa-solid fa-database" style="color: var(--primary);"></i>
+        <span id="db-space-indicator">Storage: 100% Free</span>
+      </div>
+    </header>
+
+    <!-- TAB 1: DASHBOARD -->
+    <main id="tab-dashboard" class="view-tab active-tab">
+      
+      <!-- HERO SCORES -->
+      <div class="dashboard-hero">
+        <div class="glass-card hero-stat-box">
+          <span class="hero-stat-label">Daily Rating</span>
+          <span id="stat-score" class="hero-stat-value" style="color: var(--primary);">0%</span>
+        </div>
+        <div class="glass-card hero-stat-box">
+          <span class="hero-stat-label">Today's Tests</span>
+          <span id="stat-tests-count" class="hero-stat-value" style="color: var(--text-dark);">0</span>
+        </div>
+      </div>
+
+      <!-- TODAY'S HOURLY PLANNER TABLE -->
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-calendar-day"></i> Today's Schedule Table</div>
+        <div class="dashboard-table-container">
+          <table class="ios-table">
+            <thead>
+              <tr>
+                <th>Time Slot</th>
+                <th>Activity Plan</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-planner-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- MY DAILY ROUTINE (IMAGE DISPLAY) -->
+      <section class="glass-card" id="routine-dashboard-section">
+        <div class="section-title"><i class="fa-solid fa-calendar-week"></i> My Daily Routine</div>
+        <div class="routine-container" id="routine-display-box">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- BASE RECURRING CHECKLISTS -->
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-square-check"></i> Standard Goals</div>
+        
+        <div class="dashboard-item">
+          <div class="item-meta">
+            <span class="item-label">Focused Lectures</span>
+          </div>
+          <input type="checkbox" id="chk-lectures" class="custom-check" onchange="saveChecklistState()">
+        </div>
+
+        <div class="dashboard-item">
+          <div class="item-meta">
+            <span class="item-label">Daily Practice Problems (DPP)</span>
+          </div>
+          <input type="checkbox" id="chk-dpp" class="custom-check" onchange="saveChecklistState()">
+        </div>
+
+        <div class="dashboard-item">
+          <div class="item-meta">
+            <span class="item-label">Assignments</span>
+          </div>
+          <input type="checkbox" id="chk-assignments" class="custom-check" onchange="saveChecklistState()">
+        </div>
+
+        <div class="dashboard-item">
+          <div class="item-meta">
+            <span class="item-label">Revision Block</span>
+          </div>
+          <input type="checkbox" id="chk-revision" class="custom-check" onchange="saveChecklistState()">
+        </div>
+
+        <!-- Scheduled Test Query -->
+        <div class="dashboard-item">
+          <div class="item-meta">
+            <span class="item-label">Is a Test Scheduled Today?</span>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="chk-has-test" onchange="toggleTestRow()">
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+
+        <div class="dashboard-item" id="test-done-row" style="display: none;">
+          <div class="item-meta">
+            <span class="item-label" style="color: var(--primary); font-weight: 700;">Completed Today's Test?</span>
+          </div>
+          <input type="checkbox" id="chk-test-completed" class="custom-check" onchange="saveChecklistState()">
+        </div>
+      </section>
+
+      <!-- TODAY'S LINKED TESTS -->
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-vial"></i> Today's Linked Tests</div>
+        <div id="upcoming-tests-list">
+          <div class="item-meta"><span class="item-label" style="color: var(--text-light); font-size: 0.85rem;">No tests scheduled for today.</span></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 2: PLANNER -->
+    <main id="tab-planner" class="view-tab">
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-timeline"></i> Hourly Day Planner</div>
+        <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 16px;">Write activities below and submit with 'Save' on each row to save changes.</p>
+        <div id="hourly-inputs">
+          <!-- Populated dynamically via script -->
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 3: SCHEDULE -->
+    <main id="tab-schedule" class="view-tab">
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Bulk Schedule View</div>
+        <div class="bulk-list-container" id="schedule-bulk-list">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 4: ANALYTICS -->
+    <main id="tab-analytics" class="view-tab">
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-chart-line"></i> Rise & Down Analytics</div>
+        <div style="position: relative; height: 320px; width: 100%;">
+          <canvas id="analyticsChart"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 5: SETTINGS -->
+    <main id="tab-settings" class="view-tab">
+      
+      <!-- DAILY ROUTINE SYNC -->
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Routine Layout</div>
+        <div class="setting-group">
+          <label class="setting-label">Upload Routine Layout (JPG or PNG) - Exact Same Size</label>
+          <div class="file-upload-box" onclick="triggerFileInput('routine-img-input')">
+            <i class="fa-solid fa-image" style="font-size: 1.8rem; color: var(--primary);"></i>
+            <p style="font-size: 0.8rem; font-weight: 600;">Select Daily Routine Image</p>
+            <p style="font-size: 0.7rem; color: var(--text-light); margin-top: 2px;">Image will sync in its original size & quality</p>
+            <input type="file" id="routine-img-input" accept="image/*" onchange="handleRoutineImageUpload(event)">
+          </div>
+        </div>
+      </section>
+
+      <!-- CSV SYNC MANAGER -->
+      <section class="glass-card">
+        <div class="section-title"><i class="fa-solid fa-file-csv"></i> Batch Sync CSV</div>
+        
+        <!-- TEST UPLOAD -->
+        <div class="setting-group">
+          <label class="setting-label">Upload Tests CSV</label>
+          <div class="file-upload-box" onclick="triggerFileInput('test-csv-input')">
+            <i class="fa-solid fa-vial-circle-check"></i>
+            <p style="font-size: 0.8rem; font-weight: 600;">Click to select Tests CSV</p>
+            <p style="font-size: 0.7rem; color: var(--text-light); margin-top: 2px;">Structure: Date,Test (Any Date format supported)</p>
+            <input type="file" id="test-csv-input" accept=".csv" onchange="handleTestCSV(event)">
+          </div>
+        </div>
+      </section>
+
+      <!-- CLEAN DATABASE OPTIONS -->
+      <section class="glass-card" style="border-color: rgba(239, 68, 68, 0.3);">
+        <div class="section-title" style="color: var(--danger);"><i class="fa-solid fa-dumpster-fire"></i> Clean Database Storage</div>
+        <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 16px;">Safely wipe elements from Firestore to avoid performance lag.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="auth-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); box-shadow: none; margin: 0;" onclick="cleanData('routine')">
+            <i class="fa-solid fa-trash-can"></i> Clear Routine Image
+          </button>
+          <button class="auth-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); box-shadow: none; margin: 0;" onclick="cleanData('tests')">
+            <i class="fa-solid fa-trash-can"></i> Delete All Tests
+          </button>
+          <button class="auth-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); margin: 0;" onclick="cleanData('all')">
+            <i class="fa-solid fa-triangle-exclamation"></i> Delete All App Data
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom navigation bar -->
+    <nav class="nav-bar">
+      <div class="nav-btn active" onclick="switchNav('dashboard', this)">
+        <i class="fa-solid fa-square-poll-vertical"></i>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-btn" onclick="switchNav('planner', this)">
+        <i class="fa-solid fa-clock"></i>
+        <span>Planner</span>
+      </div>
+      <div class="nav-btn" onclick="switchNav('schedule', this)">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>Schedule</span>
+      </div>
+      <div class="nav-btn" onclick="switchNav('analytics', this)">
+        <i class="fa-solid fa-chart-area"></i>
+        <span>Analytics</span>
+      </div>
+      <div class="nav-btn" onclick="switchNav('settings', this)">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast" class="toast">
+    <i class="fa-solid fa-info-circle"></i>
+    <span id="toast-message">Task updated</span>
+  </div>
+
+  <!-- SYSTEM MODULE SCRIPT -->
+  <script type="module">
+    // Resolved via Import Map
+    import { initializeApp } from "firebase/app";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfPiPSNwDktONp5WDifdExfVgYNXl8eiU",
+      authDomain: "studtrack-ee27c.firebaseapp.com",
+      projectId: "studtrack-ee27c",
+      storageBucket: "studtrack-ee27c.firebasestorage.app",
+      messagingSenderId: "279340094647",
+      appId: "1:279340094647:web:ce9b799e1a08ce4a076932"
+    };
+
+    let app, db;
+    const userId = "main_student";
+
+    // Setup global state object
+    let state = {
+      user: { uid: userId },
+      selectedDate: new Date(),
+      tests: [],
+      routineDataUrl: null,
+      currentTracking: null,
+      currentScheduleView: 'all',
+      lastAlarmDismissedDate: null
+    };
+
+    // Safe Firebase init
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+
+      // Instantly load app dashboard view on runtime bypass
+      document.getElementById('app-container').style.display = 'flex';
+      loadApplicationData();
+    } catch (err) {
+      console.error("Firebase startup failure:", err);
+      showLoader(false);
+      showToast("Firebase failed to initialize. Check rules & keys.");
+    }
+
+    /*************************************************************************
+     * REAL-TIME ALERT ALARM CONTROLLERS (AUDIO API)
+     *************************************************************************/
+    let audioCtx = null;
+    let alarmInterval = null;
+    let oscillator = null;
+    let gainNode = null;
+    let alarmActive = false;
+
+    function startAlarmSound() {
+      if (oscillator) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscillator = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // Pitch range start
+        
+        gainNode.gain.setValueAtTime(0.18, audioCtx.currentTime); // Sound volume level
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+
+        // Dual frequency ramp oscillation to mimic a real fire alarm siren sound
+        let goingUp = true;
+        alarmInterval = setInterval(() => {
+          if (!audioCtx || audioCtx.state === 'suspended') return;
+          if (goingUp) {
+            oscillator.frequency.linearRampToValueAtTime(1100, audioCtx.currentTime + 0.25);
+            goingUp = false;
+          } else {
+            oscillator.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.25);
+            goingUp = true;
+          }
+        }, 300);
+
+      } catch (e) {
+        console.error("Web Audio initialization blocked/failed:", e);
+      }
+    }
+
+    function stopAlarmSound() {
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+      if (oscillator) {
+        try { oscillator.stop(); } catch(e){}
+        oscillator = null;
+      }
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+    }
+
+    function triggerAlarmOverlay(dateStr) {
+      if (alarmActive) return;
+      alarmActive = true;
+      document.getElementById('alarm-overlay').style.display = 'flex';
+
+      startAlarmSound();
+    }
+
+    function closeAlarm() {
+      const dateStr = getFormattedDate(state.selectedDate);
+      state.lastAlarmDismissedDate = dateStr;
+      
+      stopAlarmSound();
+      alarmActive = false;
+      document.getElementById('alarm-overlay').style.display = 'none';
+      showToast("Alarm silenced");
+    }
+
+    // Global background browser auto-unlock trigger for autoplay exceptions
+    window.addEventListener('click', () => {
+      if (alarmActive && (!audioCtx || audioCtx.state === 'suspended')) {
+        startAlarmSound();
+      }
+    });
+    window.addEventListener('touchstart', () => {
+      if (alarmActive && (!audioCtx || audioCtx.state === 'suspended')) {
+        startAlarmSound();
+      }
+    });
+
+    /*************************************************************************
+     * DATABASE SYNC LOGIC (FIRESTORE)
+     *************************************************************************/
+    async function loadApplicationData() {
+      const dateStr = getFormattedDate(state.selectedDate);
+
+      try {
+        // 1. Fetch Tests
+        const testSnap = await getDocs(collection(db, "users", userId, "tests"));
+        state.tests = testSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 2. Fetch Routine Image
+        const routineDoc = await getDoc(doc(db, "users", userId, "routine", "image"));
+        if (routineDoc.exists()) {
+          state.routineDataUrl = routineDoc.data().dataUrl;
+        } else {
+          state.routineDataUrl = null;
+        }
+        renderRoutineImage();
+
+        // 3. Fetch Daily Tracking
+        const trackDoc = await getDoc(doc(db, "users", userId, "tracking", dateStr));
+        if (trackDoc.exists()) {
+          state.currentTracking = trackDoc.data();
+        } else {
+          state.currentTracking = createDefaultTracking();
+        }
+
+        // 4. Fetch Daily Planner slots
+        const plannerDoc = await getDoc(doc(db, "users", userId, "planner", dateStr));
+        const plannerData = plannerDoc.exists() ? plannerDoc.data().slots : createDefaultPlannerSlots();
+
+        // Render UI
+        populateDashboardUI();
+        generatePlannerInputs(plannerData);
+        renderDashboardPlannerTable(plannerData);
+        renderBulkScheduleList();
+        updateDateHeader();
+        updatePerformanceChart();
+        updateRemainingSpace();
+
+        // Alarm Trigger Check
+        const hasTestToday = state.tests.some(t => t.date === dateStr);
+        if (hasTestToday) {
+          if (state.lastAlarmDismissedDate !== dateStr) {
+            triggerAlarmOverlay(dateStr);
+          }
+        } else {
+          // Safety close if they adjusted date away from alarming day
+          if (alarmActive) {
+            stopAlarmSound();
+            alarmActive = false;
+            document.getElementById('alarm-overlay').style.display = 'none';
+          }
+        }
+
+      } catch (err) {
+        console.error("Sync Error:", err);
+        showToast("Synchronisation error.");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    async function saveChecklistState() {
+      showLoader(true);
+      const dateStr = getFormattedDate(state.selectedDate);
+
+      const lectures = document.getElementById('chk-lectures').checked;
+      const dpp = document.getElementById('chk-dpp').checked;
+      const assignments = document.getElementById('chk-assignments').checked;
+      const revision = document.getElementById('chk-revision').checked;
+      const hasTest = document.getElementById('chk-has-test').checked;
+      const testCompleted = document.getElementById('chk-test-completed').checked;
+
+      let score = 0;
+      if (hasTest) {
+        let done = 0;
+        if (lectures) done++;
+        if (dpp) done++;
+        if (assignments) done++;
+        if (revision) done++;
+        if (testCompleted) done++;
+        score = Math.round((done / 5) * 100);
+      } else {
+        let done = 0;
+        if (lectures) done++;
+        if (dpp) done++;
+        if (assignments) done++;
+        if (revision) done++;
+        score = Math.round((done / 4) * 100);
+      }
+
+      const updatedTracking = { lectures, dpp, assignments, revision, hasTest, testCompleted, score };
+
+      try {
+        await setDoc(doc(db, "users", userId, "tracking", dateStr), updatedTracking);
+        state.currentTracking = updatedTracking;
+        document.getElementById('stat-score').innerText = `${score}%`;
+        showToast("Tracking saved automatically");
+      } catch (err) {
+        showToast("Failed to save checklist to database.");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    // Save individual hour slot on row submission
+    async function saveHourSlot(hour) {
+      showLoader(true);
+      const dateStr = getFormattedDate(state.selectedDate);
+      const inputVal = document.getElementById(`plan-input-${hour.replace(/\s/g, '-')}`).value;
+
+      try {
+        const plannerDoc = await getDoc(doc(db, "users", userId, "planner", dateStr));
+        let slots = plannerDoc.exists() ? plannerDoc.data().slots : {};
+        slots[hour] = inputVal;
+
+        await setDoc(doc(db, "users", userId, "planner", dateStr), { slots });
+        showToast(`Saved plan for ${hour}`);
+        
+        renderDashboardPlannerTable(slots);
+      } catch (err) {
+        showToast("Could not sync planner values.");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    /*************************************************************************
+     * TESTS CHECK ACTIONS
+     *************************************************************************/
+    async function toggleTestCompletion(testId, isChecked) {
+      showLoader(true);
+
+      try {
+        await updateDoc(doc(db, "users", userId, "tests", testId), { completed: isChecked });
+        const tIndex = state.tests.findIndex(t => t.id === testId);
+        if (tIndex > -1) state.tests[tIndex].completed = isChecked;
+        showToast("Test status updated");
+        renderBulkScheduleList();
+        renderDashboardTests();
+      } catch (err) {
+        showToast("Error updating test status.");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    /*************************************************************************
+     * ROUTINE IMAGE RAW SYNC (NO COMPRESSION)
+     *************************************************************************/
+    async function handleRoutineImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Verify absolute limit thresholds
+      if (file.size > 1048576) {
+        showToast("Image exceeds Firestore 1MB document storage limit. Choose a slightly smaller image.");
+        event.target.value = "";
+        return;
+      }
+
+      showLoader(true);
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const rawDataUrl = e.target.result;
+        try {
+          await setDoc(doc(db, "users", userId, "routine", "image"), { dataUrl: rawDataUrl });
+          state.routineDataUrl = rawDataUrl;
+          renderRoutineImage();
+          updateRemainingSpace();
+          showToast("Original Image synced successfully.");
+        } catch (err) {
+          console.error(err);
+          showToast("Firestore upload failed. Try a smaller file size.");
+        } finally {
+          showLoader(false);
+          event.target.value = "";
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderRoutineImage() {
+      const container = document.getElementById('routine-display-box');
+      if (state.routineDataUrl) {
+        container.innerHTML = `
+          <img src="${state.routineDataUrl}" class="routine-img" alt="Daily Routine" onclick="zoomImage(this.src)">
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="no-routine-msg">No Daily Routine Image Uploaded. Upload one in Settings.</div>
+        `;
+      }
+    }
+
+    /*************************************************************************
+     * FIRESTORE STORAGE CALCULATIONS
+     *************************************************************************/
+    function updateRemainingSpace() {
+      const limitBytes = 1048576; // 1MB maximum Firestore doc limit
+      let usedBytes = 0;
+
+      if (state.routineDataUrl) {
+        usedBytes += state.routineDataUrl.length;
+      }
+
+      usedBytes += JSON.stringify(state.tests).length;
+
+      const remainingBytes = Math.max(0, limitBytes - usedBytes);
+      const remainingPercent = Math.max(0, ((remainingBytes / limitBytes) * 100).toFixed(1));
+      const remainingKB = (remainingBytes / 1024).toFixed(0);
+
+      const indicator = document.getElementById('db-space-indicator');
+      if (indicator) {
+        indicator.innerHTML = `<i class="fa-solid fa-database" style="color: var(--primary);"></i> Space: ${remainingPercent}%`;
+        
+        if (remainingPercent < 15) {
+          indicator.style.color = 'var(--danger)';
+        } else {
+          indicator.style.color = 'var(--text-dark)';
+        }
+      }
+    }
+
+    /*************************************************************************
+     * RESILIENT CSV PARSING & BATCH IMPORTATION
+     *************************************************************************/
+    function normalizeDateString(dateStr) {
+      if (!dateStr) return null;
+      dateStr = dateStr.trim();
+
+      const isoPattern = /^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})$/;
+      let match = dateStr.match(isoPattern);
+      if (match) {
+        return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+      }
+
+      const dmyPattern = /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/;
+      match = dateStr.match(dmyPattern);
+      if (match) {
+        return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+
+      const dmyShortPattern = /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2})$/;
+      match = dateStr.match(dmyShortPattern);
+      if (match) {
+        const fullYear = 2000 + parseInt(match[3], 10);
+        return `${fullYear}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        const y = parsedDate.getFullYear();
+        const m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(parsedDate.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+      return null;
+    }
+
+    async function handleTestCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      showLoader(true);
+      const reader = new FileReader();
+
+      reader.onload = async function(e) {
+        const text = e.target.result;
+        const parsed = parseCSVData(text);
+
+        if (parsed.length === 0 || !parsed[0].hasOwnProperty('date') || !parsed[0].hasOwnProperty('test')) {
+          showToast("Incorrect format. Layout should be: 'Date,Test'.");
+          showLoader(false);
+          return;
+        }
+
+        const batch = writeBatch(db);
+        let successfullyParsedCount = 0;
+
+        parsed.forEach(row => {
+          const normalizedDate = normalizeDateString(row.date);
+          if (normalizedDate) {
+            const docRef = doc(collection(db, "users", userId, "tests"));
+            batch.set(docRef, {
+              date: normalizedDate,
+              testName: row.test,
+              completed: false
+            });
+            successfullyParsedCount++;
+          }
+        });
+
+        if (successfullyParsedCount === 0) {
+          showToast("Could not recognize date format in your CSV file.");
+          showLoader(false);
+          return;
+        }
+
+        try {
+          await batch.commit();
+          showToast(`Synced ${successfullyParsedCount} tests successfully!`);
+          event.target.value = "";
+          await loadApplicationData();
+        } catch (err) {
+          showToast("CSV sync failed on batch write.");
+          showLoader(false);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /*************************************************************************
+     * DATABASE CLEAN OPERATIONS
+     *************************************************************************/
+    async function cleanData(mode) {
+      if (!confirm("Are you sure you want to delete these records? This cannot be undone.")) return;
+      showLoader(true);
+
+      try {
+        if (mode === 'routine' || mode === 'all') {
+          await deleteDoc(doc(db, "users", userId, "routine", "image"));
+          state.routineDataUrl = null;
+          renderRoutineImage();
+          updateRemainingSpace();
+        }
+
+        if (mode === 'tests' || mode === 'all') {
+          const snap = await getDocs(collection(db, "users", userId, "tests"));
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        if (mode === 'all') {
+          // Clean tracking
+          const trackSnap = await getDocs(collection(db, "users", userId, "tracking"));
+          let batch = writeBatch(db);
+          trackSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+
+          // Clean planner
+          const plannerSnap = await getDocs(collection(db, "users", userId, "planner"));
+          batch = writeBatch(db);
+          plannerSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        showToast("Storage cleared successfully.");
+        await loadApplicationData();
+      } catch (err) {
+        console.error(err);
+        showToast("Database wipe operations failed.");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    /*************************************************************************
+     * ANALYTICS GRAPH (CHART.JS)
+     *************************************************************************/
+    let chartInstance = null;
+
+    async function getHistoryData() {
+      const labels = [];
+      const dataset = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(state.selectedDate);
+        d.setDate(d.getDate() - i);
+        const dateStr = getFormattedDate(d);
+        const formattedLabel = `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
+        
+        labels.push(formattedLabel);
+
+        try {
+          const trackDoc = await getDoc(doc(db, "users", userId, "tracking", dateStr));
+          if (trackDoc.exists()) {
+            dataset.push(trackDoc.data().score || 0);
+          } else {
+            dataset.push(0);
+          }
+        } catch {
+          dataset.push(0);
+        }
+      }
+
+      return { labels, dataset };
+    }
+
+    async function updatePerformanceChart() {
+      const ctx = document.getElementById('analyticsChart').getContext('2d');
+      const { labels, dataset } = await getHistoryData();
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataset,
+            borderColor: '#4f46e5',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#4f46e5',
+            pointBorderColor: '#ffffff',
+            pointRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 0, max: 100, grid: { color: 'rgba(0, 0, 0, 0.04)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    /*************************************************************************
+     * GLOBAL SYSTEM BRIDGING FOR INLINE HTML COMPLIANCE
+     *************************************************************************/
+    window.adjustDate = adjustDate;
+    window.saveChecklistState = saveChecklistState;
+    window.saveHourSlot = saveHourSlot;
+    window.toggleTestRow = toggleTestRow;
+    window.handleRoutineImageUpload = handleRoutineImageUpload;
+    window.handleTestCSV = handleTestCSV;
+    window.triggerFileInput = triggerFileInput;
+    window.toggleTestCompletion = toggleTestCompletion;
+    window.switchNav = switchNav;
+    window.cleanData = cleanData;
+    window.switchScheduleView = switchScheduleView;
+    window.closeAlarm = closeAlarm;
+
+    function adjustDate(amount) {
+      state.selectedDate.setDate(state.selectedDate.getDate() + amount);
+      showLoader(true);
+      loadApplicationData();
+    }
+
+    function toggleTestRow() {
+      const active = document.getElementById('chk-has-test').checked;
+      document.getElementById('test-done-row').style.display = active ? 'flex' : 'none';
+      if (!active) document.getElementById('chk-test-completed').checked = false;
+      saveChecklistState();
+    }
+
+    function switchNav(tabId, el) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      el.classList.add('active');
+
+      document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active-tab'));
+      document.getElementById(`tab-${tabId}`).classList.add('active-tab');
+
+      if (tabId === 'analytics') {
+        setTimeout(updatePerformanceChart, 100);
+      }
+    }
+
+    function switchScheduleView(viewType) {
+      state.currentScheduleView = viewType;
+      renderBulkScheduleList();
+    }
+
+    function getFormattedDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function updateDateHeader() {
+      const today = getFormattedDate(new Date());
+      const active = getFormattedDate(state.selectedDate);
+
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const headerStr = active === today ? "Today" : `${state.selectedDate.getDate()} ${monthNames[state.selectedDate.getMonth()]}`;
+      document.getElementById('display-date-str').innerText = headerStr;
+    }
+
+    function createDefaultTracking() {
+      return { lectures: false, dpp: false, assignments: false, revision: false, hasTest: false, testCompleted: false, score: 0 };
+    }
+
+    function createDefaultPlannerSlots() {
+      return {};
+    }
+
+    function parseCSVData(text) {
+      const lines = text.split(/\r?\n/);
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const records = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line.split(',').map(val => val.trim());
+        const row = {};
+        
+        headers.forEach((hdr, idx) => {
+          row[hdr] = values[idx] || "";
+        });
+        records.push(row);
+      }
+      return records;
+    }
+
+    function populateDashboardUI() {
+      const data = state.currentTracking || createDefaultTracking();
+      const dateStr = getFormattedDate(state.selectedDate);
+
+      document.getElementById('chk-lectures').checked = !!data.lectures;
+      document.getElementById('chk-dpp').checked = !!data.dpp;
+      document.getElementById('chk-assignments').checked = !!data.assignments;
+      document.getElementById('chk-revision').checked = !!data.revision;
+      
+      const hasTest = !!data.hasTest;
+      document.getElementById('chk-has-test').checked = hasTest;
+      document.getElementById('test-done-row').style.display = hasTest ? 'flex' : 'none';
+      document.getElementById('chk-test-completed').checked = !!data.testCompleted;
+
+      document.getElementById('stat-score').innerText = `${data.score || 0}%`;
+
+      const activeTests = state.tests.filter(t => t.date === dateStr);
+      document.getElementById('stat-tests-count').innerText = activeTests.length;
+    }
+
+    function generatePlannerInputs(plannerSlots) {
+      const container = document.getElementById('hourly-inputs');
+      container.innerHTML = "";
+
+      const hours = [
+        "09 AM - 10 AM", "10 AM - 11 AM", "11 AM - 12 PM", "12 PM - 01 PM",
+        "01 PM - 02 PM", "02 PM - 03 PM", "03 PM - 04 PM", "04 PM - 05 PM",
+        "05 PM - 06 PM", "06 PM - 07 PM", "07 PM - 08 PM", "08 PM - 09 PM",
+        "09 PM - 10 PM"
+      ];
+
+      hours.forEach(hr => {
+        const planVal = plannerSlots[hr] || '';
+        const row = document.createElement('div');
+        row.className = "planner-card-slot";
+        row.innerHTML = `
+          <div class="planner-card-time">${hr}</div>
+          <div class="planner-card-input-wrapper">
+            <input type="text" id="plan-input-${hr.replace(/\s/g, '-')}" class="planner-card-input" value="${planVal}" placeholder="Create target plan...">
+          </div>
+          <button class="planner-save-btn" onclick="saveHourSlot('${hr}')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Save
+          </button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderDashboardPlannerTable(plannerSlots) {
+      const tableBody = document.getElementById('dashboard-planner-table-body');
+      tableBody.innerHTML = "";
+
+      const hours = [
+        "09 AM - 10 AM", "10 AM - 11 AM", "11 AM - 12 PM", "12 PM - 01 PM",
+        "01 PM - 02 PM", "02 PM - 03 PM", "03 PM - 04 PM", "04 PM - 05 PM",
+        "05 PM - 06 PM", "06 PM - 07 PM", "07 PM - 08 PM", "08 PM - 09 PM",
+        "09 PM - 10 PM"
+      ];
+
+      let hasPlans = false;
+
+      hours.forEach(hr => {
+        const val = plannerSlots[hr] || '';
+        if (val) {
+          hasPlans = true;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight: 600; color: var(--primary); width: 120px;">${hr}</td>
+            <td style="font-weight: 500;">${val}</td>
+          `;
+          tableBody.appendChild(tr);
+        }
+      });
+
+      if (!hasPlans) {
+        tableBody.innerHTML = `<tr><td colspan="2" class="plan-text-empty" style="text-align: center;">No schedule plans saved for today.</td></tr>`;
+      }
+    }
+
+    function renderDashboardTests() {
+      const listContainer = document.getElementById('upcoming-tests-list');
+      const dateStr = getFormattedDate(state.selectedDate);
+      const activeTests = state.tests.filter(t => t.date === dateStr);
+
+      if (activeTests.length === 0) {
+        listContainer.innerHTML = `<div class="item-meta"><span class="item-label" style="color: var(--text-light); font-size: 0.85rem;">No tests scheduled for today.</span></div>`;
+        return;
+      }
+
+      listContainer.innerHTML = "";
+      activeTests.forEach(test => {
+        const row = document.createElement('div');
+        row.className = "dashboard-item";
+        row.innerHTML = `
+          <div class="item-meta">
+            <span class="item-label">${test.testName}</span>
+            <span class="item-badge" style="background: rgba(239, 68, 68, 0.15); color: var(--danger);">EXAM</span>
+          </div>
+          <input type="checkbox" class="custom-check" ${test.completed ? 'checked' : ''} onchange="toggleTestCompletion('${test.id}', this.checked)">
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    function renderBulkScheduleList() {
+      const container = document.getElementById('schedule-bulk-list');
+      container.innerHTML = "";
+
+      let items = [];
+
+      state.tests.forEach(t => {
+        items.push({
+          id: t.id,
+          date: t.date,
+          title: t.testName,
+          type: 'test',
+          badge: 'EXAM',
+          completed: t.completed,
+          badgeColor: 'rgba(239, 68, 68, 0.15)',
+          textColor: 'var(--danger)'
+        });
+      });
+
+      // Sort items by date ascending
+      items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (items.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-light); font-size: 0.9rem; padding: 20px 0;">No schedule records found. Upload a CSV inside Settings to begin.</div>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const rawDate = new Date(item.date);
+        const formatStr = isNaN(rawDate.getTime()) ? item.date : `${rawDate.getDate()} ${rawDate.toLocaleString('default', { month: 'short' })} ${rawDate.getFullYear()}`;
+
+        const card = document.createElement('div');
+        card.className = "bulk-item-card";
+        card.innerHTML = `
+          <div class="bulk-item-info">
+            <span class="bulk-date-badge">${formatStr}</span>
+            <span style="font-weight: 600; font-size: 0.9rem; margin-top: 4px; color: var(--text-dark);">${item.title}</span>
+            <span class="item-badge" style="background: ${item.badgeColor}; color: ${item.textColor};">${item.badge}</span>
+          </div>
+          <input type="checkbox" class="custom-check" ${item.completed ? 'checked' : ''} 
+            onchange="toggleTestCompletion('${item.id}', this.checked)">
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Safety fallback: if anything crashes during initial load, make sure the spinner is closed!
+    window.addEventListener('error', () => {
+      showLoader(false);
+    });
+  </script>
+
+  <!-- PWA & CLIENT-SIDE RENDERING SCRIPTS -->
+  <script>
+    // Zoom Lightbox Handlers
+    function zoomImage(src) {
+      const lightbox = document.getElementById('image-lightbox');
+      const img = document.getElementById('lightbox-img');
+      img.src = src;
+      lightbox.classList.add('active');
+    }
+
+    function closeLightbox() {
+      const lightbox = document.getElementById('image-lightbox');
+      lightbox.classList.remove('active');
+    }
+
+    window.zoomImage = zoomImage;
+    window.closeLightbox = closeLightbox;
+
+    // Pure UI helper handlers
+    function triggerFileInput(id) {
+      document.getElementById(id).click();
+    }
+
+    function showLoader(visible) {
+      document.getElementById('global-loader').style.opacity = visible ? '1' : '0';
+      document.getElementById('global-loader').style.pointerEvents = visible ? 'all' : 'none';
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    /*************************************************************************
+     * PWA STANDALONE INSTALLATION MANAGEMENT
+     *************************************************************************/
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBanner = document.getElementById('pwa-install-banner');
+      if (installBanner) installBanner.style.display = 'flex';
+    });
+
+    async function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the PWA install prompt');
+        }
+        deferredPrompt = null;
+        const installBanner = document.getElementById('pwa-install-banner');
+        if (installBanner) installBanner.style.display = 'none';
+      }
+    }
+    window.installApp = installApp;
+
+    // Dynamic Service Worker registration using local base Blob format
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          self.addEventListener('install', e => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', e => {
+            e.waitUntil(clients.claim());
+          });
+          self.addEventListener('fetch', e => {
+            e.respondWith(fetch(e.request));
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob))
+          .then(reg => console.log('Service Worker registered successfully'))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
